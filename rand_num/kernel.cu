@@ -16,31 +16,32 @@ __device__ float generate_rand(curandState *state, int i) {
 	return random;
 }
 
-__global__ void setup_kernel(curandState *state, unsigned long int seed, int* count) {
+__global__ void setup_kernel(curandState *state, unsigned long int seed) {
 	int i = threadIdx.x + blockDim.x*blockIdx.x;
 	//printf("%d\n", i);
 	curand_init(seed, i, 2, &state[i]);
-	count[i] = i;
+	
 }
 
-__global__ void kernel(float *N, curandState *state)
+__global__ void kernel(float *N, curandState *state,int num_state, int num_rand)
 {
 	int i = threadIdx.x + blockDim.x*blockIdx.x;
-	float k = generate_rand(state, i);
-	N[i] = k;
+	int d = i;
+	for (int i; i < num_rand; i+=num_state)
+	{
+		float k = generate_rand(state, d);
+		N[i] = k;
+	}
 	//printf("%f\n", k);
 
 }
 
 int main()
 {
-	int N = 40000;
+	int N = 1<<20;
+	int state_n = 256;
 	curandState* devStates;
-	cudaMalloc((void**)&devStates, N * sizeof(curandState));
-
-	int *count;
-	cudaMallocManaged(&count, sizeof(int)*N);
-	cudaMemset(count, 0, sizeof(int)*N);
+	cudaMallocManaged((void**)&devStates, state_n * sizeof(curandState));
 
 	float *N2;
 	cudaMallocManaged(&N2, N * sizeof(float));
@@ -51,25 +52,25 @@ int main()
 
 	int threadsPerBlock = 256;
 	int numBlock = (N + threadsPerBlock - 1) / threadsPerBlock;
+	int stateBlock = (state_n + threadsPerBlock - 1) / threadsPerBlock;
 	//printf("%d\n", gridsize);
 
-	setup_kernel << <numBlock, threadsPerBlock >> > (devStates, time(NULL), count);
+	setup_kernel << <stateBlock, threadsPerBlock >> > (devStates, time(NULL));
 	cudaDeviceSynchronize();
 
-	kernel << <numBlock, threadsPerBlock >> > (N2, devStates);
+	kernel << <stateBlock, threadsPerBlock >> > (N2, devStates,state_n,N);
 	cudaDeviceSynchronize();
 
 	//cudaMemcpy(N2,N3,sizeof(float)*N,cudaMemcpyDeviceToHost);
 
-	for (int i = 0; i < N; i++)
-	{
-		//if(N2[i]==0)
-		//	printf("%d\n",i);
-		printf("%f\n", N2[i]);
-		//if (count[i] != i)
-		//	printf("%d\n", i);
-	}
+	//for (int i = 0; i < N; i++)
+	//{
+	//	if(N2[i]==N2[100])
+	//		printf("%d\n",i);
+	//	printf("%f\n", N2[i]);
+	//}
 
+	cudaFree(devStates);
 	cudaFree(N2);
 	//cudaFree(N3);
 	return 0;
