@@ -38,7 +38,7 @@ __global__ void kernel(float *N, curandState *state,int num_state, int num_rand)
 
 int main()
 {
-	int N = 1<<20;
+	size_t N = 1<<20;
 	int state_n = 256;
 	curandState* devStates;
 	cudaMallocManaged((void**)&devStates, state_n * sizeof(curandState));
