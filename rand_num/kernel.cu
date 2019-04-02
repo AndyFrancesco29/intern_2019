@@ -7,71 +7,35 @@
 #include <curand_kernel.h>
 #include <time.h>
 #include <math.h>
+#include <ComplexRandNum.cuh>
 
 
-__device__ float generate_rand(curandState *state, int i) {
-	curandState localstate = state[i];
-	float random = curand_uniform(&localstate);
-	state[i] = localstate;
-	return random;
-}
 
-__global__ void setup_kernel(curandState *state, unsigned long int seed) {
-	int i = threadIdx.x + blockDim.x*blockIdx.x;
-	//printf("%d\n", i);
-	curand_init(seed, i, 2, &state[i]);
-	
-}
-
-__global__ void kernel(float *N, curandState *state,int num_state, int num_rand)
+__global__ void getRand() 
 {
-	int i = threadIdx.x + blockDim.x*blockIdx.x;
-	int d = i;
-	for (int i; i < num_rand; i+=num_state)
-	{
-		float k = generate_rand(state, d);
-		N[i] = k;
-	}
-	//printf("%f\n", k);
-
+	int id = threadIdx.x + blockDim.x*blockIdx.x;
+	int N = 3;
+	CudaComplex *temp = (CudaComplex*)malloc(N * sizeof(CudaComplex));
+	getDeviceRand(id,N,temp);
+	CudaComplex sum=temp[0]+temp[1]+temp[2];
+	sum.display();
 }
+
 
 int main()
 {
-	size_t N = 1<<20;
-	int state_n = 256;
-	curandState* devStates;
-	cudaMallocManaged((void**)&devStates, state_n * sizeof(curandState));
+	//cudaFree(devStates);
+	//cudaFree(N2);
+	////cudaFree(N3);
+	//return 0;
 
-	float *N2;
-	cudaMallocManaged(&N2, N * sizeof(float));
-	//float *N3;
-	//cudaMalloc((void**)&N3, sizeof(float)*N);
+	/*int N = 10000;
+	CudaComplex *result;
+	cudaMallocManaged(&result, N * sizeof(CudaComplex));
+	getRandomNumber(result, N, 128);
+	result[1000].display();
+	return 0;*/
 
-	cudaMemset(N2, 0, sizeof(float)*N);
-
-	int threadsPerBlock = 256;
-	int numBlock = (N + threadsPerBlock - 1) / threadsPerBlock;
-	int stateBlock = (state_n + threadsPerBlock - 1) / threadsPerBlock;
-	//printf("%d\n", gridsize);
-
-	setup_kernel << <stateBlock, threadsPerBlock >> > (devStates, time(NULL));
-	cudaDeviceSynchronize();
-
-	kernel << <stateBlock, threadsPerBlock >> > (N2, devStates,state_n,N);
-	cudaDeviceSynchronize();
-
-	//cudaMemcpy(N2,N3,sizeof(float)*N,cudaMemcpyDeviceToHost);
-
-	//for (int i = 0; i < N; i++)
-	//{
-	//	if(N2[i]==N2[100])
-	//		printf("%d\n",i);
-	//	printf("%f\n", N2[i]);
-	//}
-
-	cudaFree(devStates);
-	cudaFree(N2);
-	//cudaFree(N3);
+	getRand << <2, 8 >> > ();
 	return 0;
 }
