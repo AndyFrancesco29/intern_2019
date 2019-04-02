@@ -1,7 +1,7 @@
 #include "ComplexRandNum.cuh"
 #define PI 3.14159f
 
- __device__ float generate_rand(curandState *state, int i) {
+__device__ float generate_rand(curandState *state, int i) {
 	curandState localstate = state[i];
 	float random = curand_uniform(&localstate)*2*PI;
 	state[i] = localstate;
@@ -65,7 +65,7 @@ __global__ void kernel(CudaComplex *N, curandState *state, int num_state, int nu
 		//cudaFree(N3);
 	}
 
-	__device__ void getDeviceRand(int id,int N,CudaComplex*result)
+__device__ void getDeviceRand(int id,int N,CudaComplex*result)
 	{
 		curandState localstate;
 		float x, y;
