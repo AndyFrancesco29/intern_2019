@@ -24,11 +24,7 @@ __global__ void getRand()
 
 int main()
 {
-	//cudaFree(devStates);
-	//cudaFree(N2);
-	////cudaFree(N3);
-	//return 0;
-
+	
 	/*int N = 10000;
 	CudaComplex *result;
 	cudaMallocManaged(&result, N * sizeof(CudaComplex));
@@ -38,4 +34,5 @@ int main()
 
 	getRand << <2, 8 >> > ();
 	return 0;
+
 }
